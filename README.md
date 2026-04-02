@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-# llm-log-analyzer
-LLM-powered CI/CD failure analyzer using FastAPI, Docker , Jenkins, and Ollama for automated log debugging.
-=======
+
 # LLM Log Analyzer
 
 A FastAPI backend that analyzes CI/CD logs and returns a failure summary, root cause, and fix suggestion.
@@ -29,4 +26,4 @@ A FastAPI backend that analyzes CI/CD logs and returns a failure summary, root c
 ```bash
 python3 -m venv venv
 source venv/bin/activate
->>>>>>> 8902d62 (LLM CI/CD analyzer with Docker)
+
