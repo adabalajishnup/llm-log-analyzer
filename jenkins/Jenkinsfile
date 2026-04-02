@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t llm-log-analyzer .'
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                    docker run -d --name llm-log-analyzer-container \
+                    -p 8000:8000 \
+                    -e OLLAMA_HOST=http://host.docker.internal:11434 \
+                    -e OLLAMA_MODEL=gemma3 \
+                    llm-log-analyzer
+                '''
+            }
+        }
+
+        stage('Test API') {
+            steps {
+                sh '''
+                    sleep 10
+                    curl -X POST http://127.0.0.1:8000/analyze \
+                    -H "Content-Type: application/json" \
+                    -d '{"log_text":"ERROR: No module named requests"}'
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker stop llm-log-analyzer-container || true'
+            sh 'docker rm llm-log-analyzer-container || true'
+        }
+    }
+}
