@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = 'llm-log-analyzer'
+        CONTAINER_NAME = 'llm-log-analyzer-container'
+        IMAGE_NAME = 'llm-log-analyzer'
+        API_URL = 'http://host.docker.internal:8000/analyze'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -10,29 +17,35 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t llm-log-analyzer .'
+                sh 'docker build -t ${IMAGE_NAME} .'
             }
         }
 
         stage('Run Container') {
             steps {
                 sh '''
-                    docker run -d --name llm-log-analyzer-container \
-                    -p 8000:8000 \
-                    -e OLLAMA_HOST=http://host.docker.internal:11434 \
-                    -e OLLAMA_MODEL=gemma3 \
-                    llm-log-analyzer
+                    docker rm -f ${CONTAINER_NAME} || true
+                    docker run -d --name ${CONTAINER_NAME} \
+                      -p 8000:8000 \
+                      -e OLLAMA_HOST=http://host.docker.internal:11434 \
+                      -e OLLAMA_MODEL=gemma3 \
+                      ${IMAGE_NAME}
                 '''
+            }
+        }
+
+        stage('Wait for App') {
+            steps {
+                sh 'sleep 10'
             }
         }
 
         stage('Test API') {
             steps {
                 sh '''
-                    sleep 10
-                    curl -X POST http://127.0.0.1:8000/analyze \
-                    -H "Content-Type: application/json" \
-                    -d '{"log_text":"ERROR: No module named requests"}'
+                    curl -X POST ${API_URL} \
+                      -H "Content-Type: application/json" \
+                      -d '{"log_text":"ERROR: No module named requests"}'
                 '''
             }
         }
@@ -40,8 +53,8 @@ pipeline {
 
     post {
         always {
-            sh 'docker stop llm-log-analyzer-container || true'
-            sh 'docker rm llm-log-analyzer-container || true'
+            sh 'docker stop ${CONTAINER_NAME} || true'
+            sh 'docker rm ${CONTAINER_NAME} || true'
         }
     }
 }
